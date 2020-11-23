@@ -41,9 +41,19 @@ subset_data$Tempo<-as.integer(subset_data$Tempo)
 ############
 
 subset_data<-read.csv('updated_genre.csv')
+subset_data$Overall_Genre[subset_data$Overall_Genre=='Indie']<-'Rock'
+subset_data$Overall_Genre[subset_data$Overall_Genre=='Punk']<-'Rock'
+subset_data$Overall_Genre[subset_data$Overall_Genre=='Rap']<-'Hiphop'
+
+
 subset_data$Overall_Genre<-as.factor(subset_data$Overall_Genre)
 
+
+
 ##########
+
+
+
 library(caret)
 library(gbm)
 
@@ -92,17 +102,16 @@ Conf_boost <- confusionMatrix(as.factor(labels),
 
 multiclass.roc(subset_data$Overall_Genre,as.factor(labels),plot=T,print.thres="best",
                legacy.axes=T,print.auc =T,col="red3")
-
-summary(
-  ars_boost, 
+library(pander)
+pander(summary(
+  ars_boost_train, 
   cBars = 14,
-  method = relative.influence, # also can use permutation.test.gbm
-  las = 2
-)
+  method = relative.influence # also can use permutation.test.gb
+))
 cboost_list=c()
-for (i in 1:length(pred_prob_boost)[1]){
+for (i in 1:dim(pred_prob_boost1)[1]){
   
-  cboost_list<-append(cboost_list,match(max(pred_prob_boost[i,]),pred_prob_boost[i,]))
+  cboost_list<-append(cboost_list,match(max(pred_prob_boost1[i,]),pred_prob_boost1[i,]))
   
 }
 Conf_boost$table
@@ -243,10 +252,10 @@ trainIndex <- createDataPartition(subset_data$Overall_Genre, p = .7,
 dTrain <- subset_data[ trainIndex,]
 dTest  <- subset_data[-trainIndex,]
 
-ars_boost_train <-  gbm(Overall_Genre ~ Key + Mode + Danceability + Energy + Loudness+Speechness+
+ars_boost_train <-  gbm(Overall_Genre ~Key + Mode + Danceability + Energy + Loudness+Speechness+
                     Acousticness+Instrumentalness+Valence+Tempo + time_signature +
                     Duration_ms,data=dTrain,
-                  n.trees=500, interaction.depth=2)
+                  n.trees=1000, interaction.depth=4,  shrinkage = 0.15)
 
 
 

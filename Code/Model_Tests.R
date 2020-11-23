@@ -70,6 +70,17 @@ subset_data$Instrumentalness<-subset_data$Instrumentalness*100
 subset_data$Liveness<-subset_data$Liveness*100
 subset_data$Valence<-subset_data$Valence*100
 
+subset_data$Danceabilityc<-subset_data$Danceability-mean(subset_data$Danceability)
+subset_data$Energyc<-subset_data$Energy-mean(subset_data$Energy)
+subset_data$Loudnessc<-subset_data$Loudness-mean(subset_data$Loudness)
+subset_data$Acousticnessc<-subset_data$Acousticness-mean(subset_data$Acousticness)
+subset_data$Speechnessc<-subset_data$Speechness-mean(subset_data$Speechness)
+subset_data$Instrumentalnessc<-subset_data$Instrumentalness-mean(subset_data$Instrumentalness)
+subset_data$Livenessc<-subset_data$Liveness-mean(subset_data$Liveness)
+subset_data$Valencec<-subset_data$Valence-mean(subset_data$Valence)
+
+
+
 subset_data$log_e<-log(subset_data$Energy+0.01)
 subset_data$log_dance<-log(subset_data$Danceability+0.01)
 
@@ -94,12 +105,19 @@ trainIndex <- createDataPartition(subset_data$Overall_Genre, p = .8,
 dTrain <- subset_data[ trainIndex,]
 dTest  <- subset_data[-trainIndex,]
 
-model1 <- multinom(Overall_Genre ~ Key + Mode + Danceability + Energy + Loudness+Speechness+
-Acousticness+Instrumentalness+Valence+time_signature+Tempo,data=dTrain)
+model1 <- multinom(Overall_Genre ~ (Danceability + Acousticness) * ( Key + Mode + Danceability + Energy + Loudness+Speechness+
+                                                                  Acousticness+Instrumentalness+Valence+time_signature+Tempo),data=dTrain)
 
-predicted_scores <- predict (model1, dTest, "probs")
+model12 <- multinom(Overall_Genre ~  Key + Mode + Danceabilityc + Energyc + Loudnessc+Speechnessc+Duration_ms+
+                                                                       Acousticnessc+Instrumentalnessc+Valencec+time_signature+Tempo,data=dTrain)
 
-predicted_class <- predict (model1, dTest)
+
+anova(model1, model12, test = "Chisq")
+
+
+predicted_scores <- predict (model12, dTest, "probs")
+
+predicted_class <- predict (model12, dTest)
 
 
 confusionMatrix(predicted_class,dTest$Overall_Genre)
@@ -129,7 +147,7 @@ sub<-which(subset_data[subset_data$Energy==0])
 
 
 ###########
-predprobs <- fitted(model1) 
+predprobs <- fitted(model12) 
 
 predprobs[1,]
 clist=c()
@@ -139,190 +157,181 @@ for (i in 1:dim(predprobs)[1]){
   
   }
   
-subset_data$genre_class[subset_data$Overall_Genre=='Ambient']<-1
-subset_data$genre_class[subset_data$Overall_Genre=='Electronic']<-2
-subset_data$genre_class[subset_data$Overall_Genre=='Folk']<-3
-subset_data$genre_class[subset_data$Overall_Genre=='Funk']<-4
-subset_data$genre_class[subset_data$Overall_Genre=='Hiphop']<-5
-subset_data$genre_class[subset_data$Overall_Genre=='House']<-6
-subset_data$genre_class[subset_data$Overall_Genre=='Indie']<-7
-subset_data$genre_class[subset_data$Overall_Genre=='Jazz']<-8
-subset_data$genre_class[subset_data$Overall_Genre=='Metal']<-9
-subset_data$genre_class[subset_data$Overall_Genre=='Pop']<-10
-subset_data$genre_class[subset_data$Overall_Genre=='Punk']<-11
-subset_data$genre_class[subset_data$Overall_Genre=='Rap']<-12
-subset_data$genre_class[subset_data$Overall_Genre=='Rock']<-13
-subset_data$genre_class[subset_data$Overall_Genre=='Techno']<-14
+dTrain$genre_class[dTrain$Overall_Genre=='Ambient']<-1
+dTrain$genre_class[dTrain$Overall_Genre=='Electronic']<-2
+dTrain$genre_class[dTrain$Overall_Genre=='Folk']<-3
+dTrain$genre_class[dTrain$Overall_Genre=='Hiphop']<-4
+dTrain$genre_class[dTrain$Overall_Genre=='Jazz']<-5
+dTrain$genre_class[dTrain$Overall_Genre=='Metal']<-6
+dTrain$genre_class[dTrain$Overall_Genre=='Pop']<-7
+dTrain$genre_class[dTrain$Overall_Genre=='Rock']<-8
 
-a<-confusionMatrix(factor(clist), factor(subset_data$genre_class))
+
+a<-confusionMatrix(factor(clist), factor(dTrain$genre_class))
 
 a1<-a$byClass
 
  ###### Diagnostics
 ####diagnostics comparing average raw residuals across bins based on predictor values
 #for viewcat = 1:  create a raw residual using only the first column of the predicted probabilities
-rawresid1 <- (subset_data$Overall_Genre == 'Ambient') -  predprobs[,1]
+rawresid1 <- (dTrain$Overall_Genre == 'Ambient') -  predprobs[,1]
 #for viewcat = 2:  create a raw residual using only the second column of the predicted probabilities
-rawresid2 <- (subset_data$Overall_Genre == 'Country') -  predprobs[,2]
 #for viewcat = 3:  create a raw residual using only the third column of the predicted probabilities
-rawresid3 <- (subset_data$Overall_Genre == 'Electronic') -  predprobs[,3]
+rawresid2 <- (dTrain$Overall_Genre == 'Electronic') -  predprobs[,2]
 #for viewcat = 4:  create a raw residual using only the fourth column of the predicted probabilities
-rawresid4 <- (subset_data$Overall_Genre == 'Folk') -  predprobs[,4]
-rawresid5 <- (subset_data$Overall_Genre == 'Funk') -  predprobs[,5]
-rawresid6 <- (subset_data$Overall_Genre == 'Hiphop') -  predprobs[,6]
-rawresid7 <- (subset_data$Overall_Genre == 'House') -  predprobs[,7]
-rawresid8 <- (subset_data$Overall_Genre == 'Indie') -  predprobs[,8]
-rawresid9 <- (subset_data$Overall_Genre == 'Jazz') -  predprobs[,9]
-rawresid10 <- (subset_data$Overall_Genre == 'Metal') -  predprobs[,10]
-rawresid11 <- (subset_data$Overall_Genre == 'Pop') -  predprobs[,11]
-rawresid12 <- (subset_data$Overall_Genre == 'Punk') -  predprobs[,12]
-rawresid13 <- (subset_data$Overall_Genre == 'Rap') -  predprobs[,13]
-rawresid14 <- (subset_data$Overall_Genre == 'Rock') -  predprobs[,14]
-rawresid15 <- (subset_data$Overall_Genre == 'Techno') -  predprobs[,15]
+rawresid3 <- (dTrain$Overall_Genre == 'Folk') -  predprobs[,3]
+rawresid4 <- (dTrain$Overall_Genre == 'Hiphop') -  predprobs[,4]
+rawresid5 <- (dTrain$Overall_Genre == 'Jazz') -  predprobs[,5]
+rawresid6 <- (dTrain$Overall_Genre == 'Metal') -  predprobs[,6]
+rawresid7 <- (dTrain$Overall_Genre == 'Pop') -  predprobs[,7]
+rawresid8 <- (dTrain$Overall_Genre == 'Rock') -  predprobs[,8]
 
+
+
+
+
+dTrain$genre_class<-factor(dTrain$genre_class)
+par(mfrow=c(2,2))
+roc(dTrain$genre_class==1,predprobs[,1],plot=T,print.thres="best",legacy.axes=T,print.auc =T,
+    col="red3",percent=T,main="Ambient")
+roc(dTrain$genre_class==2,predprobs[,2],plot=T,print.thres="best",legacy.axes=T,print.auc =T,
+    col="gray3",percent=T,main="Electronic")
+roc(dTrain$genre_class==3,predprobs[,3],plot=T,print.thres="best",legacy.axes=T,print.auc =T,
+    col="green3",percent=T,main="Folk")
+roc(dTrain$genre_class==4,predprobs[,4],plot=T,print.thres="best",legacy.axes=T,print.auc =T,
+    col="blue3",percent=T,main="Hip-Hop")
+par(mfrow=c(2,2))
+roc(dTrain$genre_class==5,predprobs[,5],plot=T,print.thres="best",legacy.axes=T,print.auc =T,
+    col="red3",percent=T,main="Jazz")
+roc(dTrain$genre_class==6,predprobs[,6],plot=T,print.thres="best",legacy.axes=T,print.auc =T,
+    col="gray3",percent=T,main="Metal")
+roc(dTrain$genre_class==7,predprobs[,7],plot=T,print.thres="best",legacy.axes=T,print.auc =T,
+    col="green3",percent=T,main="Pop")
+roc(dTrain$genre_class==8,predprobs[,8],plot=T,print.thres="best",legacy.axes=T,print.auc =T,
+    col="blue3",percent=T,main="Rock")
+
+
+multiclass.roc(dTrain$Overall_Genre,predprobs,plot=T,print.thres="best",legacy.axes=T,print.auc =T,col="red3",percent=T)
 
 ##can do binned plots for continuous variables
 #make a 2 by 2 graphical display
 
 #Danceability
 par(mfcol = c(2,2))
-binnedplot(subset_data$log_dance, rawresid1, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
+binnedplot(dTrain$Danceability, rawresid1, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: Genre = Ambient")
+binnedplot(dTrain$Danceability, rawresid5, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: Genre = Jazz")
+binnedplot(dTrain$Acousticness, rawresid6, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: Genre = Metal")
+binnedplot(dTrain$Energy, rawresid6, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: Genre = Metal")
 
-binnedplot(subset_data$log_dance, rawresid2, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
-binnedplot(subset_data$log_dance, rawresid3, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
-binnedplot(subset_data$log_dance, rawresid4, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
+
+
+binnedplot(dTrain$Danceability, rawresid2, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: Genre = Electronic")
+binnedplot(dTrain$Danceability, rawresid3, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: Genre = Folk")
+binnedplot(dTrain$Danceability, rawresid4, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: Genre = Hiphop")
 
 par(mfcol = c(2,2))
-binnedplot(subset_data$log_dance, rawresid5, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
-binnedplot(subset_data$log_dance, rawresid6, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
-binnedplot(subset_data$log_dance, rawresid7, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
-binnedplot(subset_data$log_dance, rawresid8, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
-par(mfcol = c(2,2))
-binnedplot(subset_data$log_dance, rawresid9, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
-binnedplot(subset_data$log_dance, rawresid10, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
-binnedplot(subset_data$log_dance, rawresid11, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
-binnedplot(subset_data$log_dance, rawresid12, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
-par(mfcol = c(2,2))
-binnedplot(subset_data$log_dance, rawresid13, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
-binnedplot(subset_data$log_dance, rawresid14, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
-binnedplot(subset_data$log_dance, rawresid15, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
+binnedplot(dTrain$Danceability, rawresid5, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
+binnedplot(dTrain$Danceability, rawresid6, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
+binnedplot(dTrain$Danceability, rawresid7, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
+binnedplot(dTrain$Danceability, rawresid8, xlab = "Danceability", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
 
 
 
 #Energy
 par(mfcol = c(2,2))
-binnedplot(subset_data$log_e, rawresid1, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
-binnedplot(subset_data$log_e, rawresid2, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
-binnedplot(subset_data$log_e, rawresid3, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
-binnedplot(subset_data$log_e, rawresid4, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
+binnedplot(dTrain$Energy, rawresid1, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
+binnedplot(dTrain$Energy, rawresid2, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
+binnedplot(dTrain$Energy, rawresid3, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
+binnedplot(dTrain$Energy, rawresid4, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
 par(mfcol = c(2,2))
-binnedplot(subset_data$log_e, rawresid5, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
-binnedplot(subset_data$log_e, rawresid6, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
-binnedplot(subset_data$log_e, rawresid7, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
-binnedplot(subset_data$log_e, rawresid8, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
+binnedplot(dTrain$Energy, rawresid5, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
+binnedplot(dTrain$Energy, rawresid6, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
+binnedplot(dTrain$Energy, rawresid7, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
+binnedplot(dTrain$Energy, rawresid8, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
 par(mfcol = c(2,2))
 #U Shaped Curve
-binnedplot(subset_data$log_e, rawresid9, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
+binnedplot(dTrain$log_e, rawresid9, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
 
-binnedplot(subset_data$log_e, rawresid10, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
+binnedplot(dTrain$log_e, rawresid10, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
 
-binnedplot(subset_data$log_e, rawresid11, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
-binnedplot(subset_data$log_e, rawresid12, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
+binnedplot(dTrain$log_e, rawresid11, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
+binnedplot(dTrain$log_e, rawresid12, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
 par(mfcol = c(2,1))
-binnedplot(subset_data$log_e, rawresid13, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
-binnedplot(subset_data$log_e, rawresid14, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
+binnedplot(dTrain$log_e, rawresid13, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
+binnedplot(dTrain$log_e, rawresid14, xlab = "Energy", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
 
 
 #Loudness
 par(mfcol = c(2,2))
-binnedplot(subset_data$Loudness, rawresid1, xlab = "Loudness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
-binnedplot(subset_data$Loudness, rawresid2, xlab = "Loudness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
-binnedplot(subset_data$Loudness, rawresid3, xlab = "Loudness", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
-binnedplot(subset_data$Loudness, rawresid4, xlab = "Loudness", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
+binnedplot(dTrain$Loudness, rawresid1, xlab = "Loudness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
+binnedplot(dTrain$Loudness, rawresid2, xlab = "Loudness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
+binnedplot(dTrain$Loudness, rawresid3, xlab = "Loudness", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
+binnedplot(dTrain$Loudness, rawresid4, xlab = "Loudness", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
 par(mfcol = c(2,2))
-binnedplot(subset_data$Loudness, rawresid5, xlab = "Loudness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
-binnedplot(subset_data$Loudness, rawresid6, xlab = "Loudness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
-binnedplot(subset_data$Loudness, rawresid7, xlab = "Loudness", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
-binnedplot(subset_data$Loudness, rawresid8, xlab = "Loudness", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
+binnedplot(dTrain$Loudness, rawresid5, xlab = "Loudness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
+binnedplot(dTrain$Loudness, rawresid6, xlab = "Loudness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
+binnedplot(dTrain$Loudness, rawresid7, xlab = "Loudness", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
+binnedplot(dTrain$Loudness, rawresid8, xlab = "Loudness", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
 par(mfcol = c(2,2))
-#U Shaped Curve
-binnedplot(subset_data$Loudness, rawresid9, xlab = "Loudness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
-binnedplot(subset_data$Loudness, rawresid10, xlab = "Loudness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
-binnedplot(subset_data$Loudness, rawresid11, xlab = "Loudness", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
-binnedplot(subset_data$Loudness, rawresid12, xlab = "Loudness", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
-par(mfcol = c(2,2))
-binnedplot(subset_data$Loudness, rawresid13, xlab = "Loudness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
-binnedplot(subset_data$Loudness, rawresid14, xlab = "Loudness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
-binnedplot(subset_data$Loudness, rawresid15, xlab = "Loudness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
 
 
 #Speechness
 par(mfcol = c(2,2))
-binnedplot(subset_data$Speechness, rawresid1, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
-binnedplot(subset_data$Speechness, rawresid2, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
-binnedplot(subset_data$Speechness, rawresid3, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
-binnedplot(subset_data$Speechness, rawresid4, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
+binnedplot(dTrain$Speechness, rawresid1, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
+binnedplot(dTrain$Speechness, rawresid2, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
+binnedplot(dTrain$Speechness, rawresid3, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
+binnedplot(dTrain$Speechness, rawresid4, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
 par(mfcol = c(2,2))
-binnedplot(subset_data$Speechness, rawresid5, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
-binnedplot(subset_data$Speechness, rawresid6, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
-binnedplot(subset_data$Speechness, rawresid7, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
-binnedplot(subset_data$Speechness, rawresid8, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
+binnedplot(dTrain$Speechness, rawresid5, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
+binnedplot(dTrain$Speechness, rawresid6, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
+binnedplot(dTrain$Speechness, rawresid7, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
+binnedplot(dTrain$Speechness, rawresid8, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
 par(mfcol = c(2,2))
 
-binnedplot(subset_data$Speechness, rawresid9, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
-binnedplot(subset_data$Speechness, rawresid10, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
-binnedplot(subset_data$Speechness, rawresid11, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
-binnedplot(subset_data$Speechness, rawresid12, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
+binnedplot(dTrain$Speechness, rawresid9, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
+binnedplot(dTrain$Speechness, rawresid10, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
+binnedplot(dTrain$Speechness, rawresid11, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
+binnedplot(dTrain$Speechness, rawresid12, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
 par(mfcol = c(2,2))
-binnedplot(subset_data$Speechness, rawresid13, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
-binnedplot(subset_data$Speechness, rawresid14, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
-binnedplot(subset_data$Speechness, rawresid15, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
+binnedplot(dTrain$Speechness, rawresid13, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
+binnedplot(dTrain$Speechness, rawresid14, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
+binnedplot(dTrain$Speechness, rawresid15, xlab = "Speechness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
 
 
 
 #Acousticness
 par(mfcol = c(2,2))
-binnedplot(subset_data$Acousticness, rawresid1, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
-binnedplot(subset_data$Acousticness, rawresid2, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
-binnedplot(subset_data$Acousticness, rawresid3, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
-binnedplot(subset_data$Acousticness, rawresid4, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
+binnedplot(dTrain$Acousticness, rawresid1, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
+binnedplot(dTrain$Acousticness, rawresid2, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
+binnedplot(dTrain$Acousticness, rawresid3, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
+binnedplot(dTrain$Acousticness, rawresid4, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
 par(mfcol = c(2,2))
-binnedplot(subset_data$Acousticness, rawresid5, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
-binnedplot(subset_data$Acousticness, rawresid6, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
-binnedplot(subset_data$Acousticness, rawresid7, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
-binnedplot(subset_data$Acousticness, rawresid8, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
-par(mfcol = c(2,2))
-
-binnedplot(subset_data$Acousticness, rawresid9, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
-binnedplot(subset_data$Acousticness, rawresid10, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
-binnedplot(subset_data$Acousticness, rawresid11, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
-binnedplot(subset_data$Acousticness, rawresid12, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
-par(mfcol = c(2,2))
-binnedplot(subset_data$Acousticness, rawresid13, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
-binnedplot(subset_data$Acousticness, rawresid14, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
-binnedplot(subset_data$Acousticness, rawresid15, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
+binnedplot(dTrain$Acousticness, rawresid5, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
+binnedplot(dTrain$Acousticness, rawresid6, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
+binnedplot(dTrain$Acousticness, rawresid7, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
+binnedplot(dTrain$Acousticness, rawresid8, xlab = "Acousticness", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
 
 #Instrumentalness
 par(mfcol = c(2,2))
-binnedplot(subset_data$Instrumentalness, rawresid1, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
-binnedplot(subset_data$Instrumentalness, rawresid2, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
-binnedplot(subset_data$Instrumentalness, rawresid3, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
-binnedplot(subset_data$Instrumentalness, rawresid4, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
+binnedplot(dTrain$Instrumentalness, rawresid1, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
+binnedplot(dTrain$Instrumentalness, rawresid2, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
+binnedplot(dTrain$Instrumentalness, rawresid3, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
+binnedplot(dTrain$Instrumentalness, rawresid4, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
 par(mfcol = c(2,2))
-binnedplot(subset_data$Instrumentalness, rawresid5, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
-binnedplot(subset_data$Instrumentalness, rawresid6, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
-binnedplot(subset_data$Instrumentalness, rawresid7, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
-binnedplot(subset_data$Instrumentalness, rawresid8, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
+binnedplot(dTrain$Instrumentalness, rawresid5, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
+binnedplot(dTrain$Instrumentalness, rawresid6, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
+binnedplot(dTrain$Instrumentalness, rawresid7, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
+binnedplot(dTrain$Instrumentalness, rawresid8, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
 par(mfcol = c(2,2))
 
-binnedplot(subset_data$Instrumentalness, rawresid9, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
-binnedplot(subset_data$Instrumentalness, rawresid10, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
-binnedplot(subset_data$Instrumentalness, rawresid11, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
-binnedplot(subset_data$Instrumentalness, rawresid12, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
+binnedplot(dTrain$Instrumentalness, rawresid9, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
+binnedplot(dTrain$Instrumentalness, rawresid10, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
+binnedplot(dTrain$Instrumentalness, rawresid11, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 3")
+binnedplot(dTrain$Instrumentalness, rawresid12, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 4")
 par(mfcol = c(2,2))
-binnedplot(subset_data$Instrumentalness, rawresid13, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
-binnedplot(subset_data$Instrumentalness, rawresid14, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
-binnedplot(subset_data$Instrumentalness, rawresid15, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
+binnedplot(dTrain$Instrumentalness, rawresid13, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 1")
+binnedplot(dTrain$Instrumentalness, rawresid14, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
+binnedplot(dTrain$Instrumentalness, rawresid15, xlab = "Instrumentalness", ylab = "Raw residuals", main = "Binned plot: viewcat = 2")
 
 
 ###################################
@@ -334,14 +343,14 @@ library(randomForest)
 
 rf_output <- randomForest(Overall_Genre ~ Key + Mode + Danceability + Energy + Loudness+Speechness+
                                 Acousticness+Instrumentalness+Valence+Tempo + Duration_ms, 
-                              data = subset_data)
+                              data = dTrain)
 
 varImpPlot(rf_output)
 importance(rf_output)
 
 ## Confusion matrix
 Conf_mat_rf <- confusionMatrix(predict(rf_output,type="response"),
-                               as.factor(subset_data$Overall_Genre),positive = "1")
+                               as.factor(dTrain$Overall_Genre),positive = "1")
 Conf_mat_rf$table #compare to Conf_mat$table
 Conf_mat_rf$overall["Accuracy"]
 Conf_mat_rf$byClass[c("Sensitivity","Specificity")]

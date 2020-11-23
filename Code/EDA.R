@@ -41,22 +41,56 @@ write.csv(subset_data,'updated_genre.csv')
 
 
 
-music<-read.csv('updated_genre.csv')
-music$Overall_Genre<-as.factor(music$Overall_Genre)
+subset_data<-read.csv('updated_genre.csv')
+subset_data$Overall_Genre[subset_data$Overall_Genre=='Indie']<-'Rock'
+subset_data$Overall_Genre[subset_data$Overall_Genre=='Punk']<-'Rock'
+subset_data$Overall_Genre[subset_data$Overall_Genre=='Rap']<-'Hiphop'
 
+subset_data$Overall_Genre<-as.factor(subset_data$Overall_Genre)
 
-ggplot(data=music,aes(x=Danceability,y=Overall_Genre,color=Overall_Genre)) +geom_boxplot()
+music<-subset_data
+
+ggplot(data=music,aes(x=Danceability,y=Overall_Genre,color=Overall_Genre)) +geom_boxplot()+ ggtitle("Danceability vs Genre")
 ggplot(data=music,aes(x=Energy,y=Overall_Genre,color=Overall_Genre)) +geom_boxplot()
 ggplot(data=music,aes(x=Key,y=Overall_Genre,color=Overall_Genre)) +geom_boxplot()
 ggplot(data=music,aes(x=Loudness,y=Overall_Genre,color=Overall_Genre)) +geom_boxplot()
 ggplot(data=music,aes(x=Mode,y=Overall_Genre,color=Overall_Genre)) +geom_boxplot()
 ggplot(data=music,aes(x=time_signature,y=Overall_Genre,color=Overall_Genre)) +geom_boxplot()
-ggplot(data=music,aes(x=Acousticness,y=Overall_Genre,color=Overall_Genre)) +geom_boxplot()
-ggplot(data=music,aes(x=Instrumentalness,y=Overall_Genre,color=Overall_Genre)) +geom_boxplot()
+ggplot(data=music,aes(x=Acousticness,y=Overall_Genre,color=Overall_Genre)) +geom_boxplot()+ ggtitle("Acousticness vs Genre")
+sggplot(data=music,aes(x=Instrumentalness,y=Overall_Genre,color=Overall_Genre)) +geom_boxplot()
 ggplot(data=music,aes(x=Liveness,y=Overall_Genre,color=Overall_Genre)) +geom_boxplot()
-ggplot(data=music,aes(x=Valence,y=Overall_Genre,color=Overall_Genre)) +geom_boxplot()
+ggplot(data=music,aes(x=Valence,y=Overall_Genre,color=Overall_Genre)) +geom_boxplot() + ggtitle("Valence vs Genre")
 ggplot(data=music,aes(x=Tempo,y=Overall_Genre,color=Overall_Genre)) +geom_boxplot()
-ggplot(data=music,aes(x=Duration(seconds),y=Overall_Genre,color=Overall_Genre)) +geom_boxplot()
+ggplot(data=music,aes(x=Duration_ms,y=Overall_Genre,color=Overall_Genre)) +geom_boxplot()+ ggtitle("Duration (seconds) vs Genre")
+ggplot(data=music,aes(x=Speechness,y=Overall_Genre,color=Overall_Genre)) +geom_boxplot()+ ggtitle("Speechness vs Genre")
+
+
+
+table(music$Overall_Genre, music$Key)
+prop.table(table(music$Overall_Genre, music$Key), 2)
+#prop.table(table(sesame$viewcat, sesame$viewenc), 1) gives the row percentages
+chisq.test(table(music$Overall_Genre, music$Key))
+
+table(music$Overall_Genre, music$Mode)
+prop.table(table(music$Overall_Genre, music$Mode), 2)
+#prop.table(table(sesame$viewcat, sesame$viewenc), 1) gives the row percentages
+chisq.test(table(music$Overall_Genre, music$Mode))
+
+table(music$Overall_Genre, music$time_signature)
+prop.table(table(music$Overall_Genre, music$time_signature), 2)
+#prop.table(table(sesame$viewcat, sesame$viewenc), 1) gives the row percentages
+chisq.test(table(music$Overall_Genre, music$time_signature))
+
+
+#Danceability v Energy
+ggplot(data=music,aes(x=Overall_Genre,y=Danceability,color=Overall_Genre)) +geom_point()+ 
+  geom_smooth(method = "lm", color='black')+
+  facet_wrap( ~ Key)
+
+
+
+
+
 
 music <- subset_data %>%
   filter(Overall_Genre=='Folk')
