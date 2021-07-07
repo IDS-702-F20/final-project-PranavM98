@@ -1,0 +1,261 @@
+---
+title: "Music Genre Prediction"
+author: "Pranav Manjunath"
+date: "11/12/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(pander)
+library(ggplot2)
+library(magick)
+library(cowplot)
+
+subset_data<-read.csv('/Users/pranavmanjunath/Desktop/Duke/702/Final Project_Git/final-project-PranavM98/Code/updated_genre.csv')
+subset_data$Overall_Genre[subset_data$Overall_Genre=='Indie']<-'Rock'
+subset_data$Overall_Genre[subset_data$Overall_Genre=='Punk']<-'Rock'
+subset_data$Overall_Genre[subset_data$Overall_Genre=='Rap']<-'Hiphop'
+
+
+subset_data$Overall_Genre<-as.factor(subset_data$Overall_Genre)
+
+
+```
+
+## Summary
+
+The goal of this study is to understand the various Spotify audio features that strongly impact and determine the genre of a song, as well as to build a parametric and non parametric model that can accurately predict the genre of a song based on these audio features. Multinomial Logistic Regression (MLR) and Gradient Boosting Method (GBM) algorithms have been used and the GBM model performs better, having an overall accuracy of 54.02%. Audio features such as Danceability, Acousticness, and Speechness have the highest relative influence when predicting the genre of a song.
+
+## Introduction
+
+
+A music genre is a category that identifies music as belonging to a shared tradition or set of conventions. As genres lacks clear boundaries, it becomes difficult to accurately classify songs into a particular musical genre.  This classification however becomes extremely crucial for music platforms and musicians. Spotify, a Swedish-based audio streaming and media services provider, created an API that extracts multiple audio features of a song, calculated by their own algorithm. Upon inputting a song’s ID, the API would output the audio feature values for given song. A detailed description of the various audio features is mentioned in the appendix.
+
+```{r include=FALSE}
+library(pander)
+```
+
+The questions of interest for this project are:
+
+1. What are the important features that impact the genre of a song?
+2. Is it possible to build a model that can accurately predict the genre of a song based on the Spotify Music Features? Does the data follow the parametric assumptions? Would a non parametric model perform better than a parametric model?
+
+## Data
+
+The original dataset was taken from Kaggle ^[Data Link: https://www.kaggle.com/grasslover/spotify-music-genre-list?select=songDb.tsv], consisted of 122382 songs and over 2800 unique genres. There are 20 columns in the data, namely, Name, Danceability, Energy, Key, Loudness, Mode, Speechness, Acousticness, Valence, Tempo, Duration_ms, Time Signature, Liveness, Instrumentalness, Type, ID, Uri, Ref_Track, and URL_features. For this project, the columns Type, ID, Uri, Ref_Track and URL_Features have been removed from the dataset. A detailed description of the various audio features is present in the Appendix. This dataset contained no missing values however had duplicate entries which were removed. 
+
+```{r echo=FALSE, fig.width=8, fig.height=6, include=FALSE}
+
+properties<-data.frame("Variable"=c("Name","Danceability"  ,   "Energy"    ,       "Key"       ,       "Loudness",
+                             "Mode"     ,        "Speechness"      , "Acousticness"  ,   "Instrumentalness" ,
+                             "Liveness"    ,     "Valence"      ,    "Tempo"       ,  "Duration_ms"   ,   "Time_Signature" ,  "Genre"),
+                "Description"=c("Song Name",
+                                "Danceability describes how suitable a track is for dancing based on a combination of musical elements including tempo, rhythm stability, beat strength, and overall regularity. ",
+                                "Energy is a measure from 0.0 to 1.0 and represents a perceptual measure of intensity and activity.",
+                                "The estimated overall key of the track.",
+                                "The overall loudness of a track in decibels (dB).",
+                                "Mode indicates the modality (major or minor) of a track.",
+                                "Speechiness detects the presence of spoken words in a track.",
+                                "A confidence measure from 0.0 to 1.0 of whether the track is acoustic.",
+                                "Predicts whether a track contains no vocals.",
+                                "Detects the presence of an audience in the recording.",
+                                "A measure from 0.0 to 1.0 describing the musical positiveness conveyed by a track.",
+                                "The overall estimated tempo of a track in beats per minute (BPM).",
+                                "The duration of the track in milliseconds.",
+                                "An estimated overall time signature of a track.",
+                                "Genre of the Song"))
+
+
+
+pander(properties)
+```
+
+### Data Preprocessing
+
+a.	Combining the Genres. The first step of data preprocessing was to combine the genres into its parent genre. A new variable (Overall_Genre) was created to store the parent genre and used as the response variable in this study. Genres that did not have one particular parent genre (genres with multiple parent genres also excluded) and had less than 2000 songs were removed from the data. Throughout this paper the term Overall_Genre will be represented by genre. Detailed description of which genres were grouped is present in the appendix.
+
+b.	Filtering. Genres with less than 2000 songs were removed from the dataset. After filtering the data, there were 8 genres present.
+
+c.	Data Types. The variable “Overall_Genre” (Response Variable) was converted to a factor variable. “Key” and “Time Signature” was converted to discrete variables while “Mode” was converted into a binary value. 
+
+d. Final Data.
+The final dataset used for the study consists of 63302 songs and 8 genres. The genres used are Rock, Hip-hop, Metal, Ambient, Folk, Electronic, Pop, and Jazz. The table below indicates the number of songs present in each Genre. 
+
+```{r echo=FALSE}
+
+pander(table(subset_data$Overall_Genre))
+music<-subset_data
+```
+
+
+### Exploratory Data Analysis
+
+```{r, echo=FALSE ,fig.height=2, fig.width=3, align='center'}
+
+
+par(mfrow=c(1,2))
+ggplot(data=music,aes(x=Danceability,y=Overall_Genre,color=Overall_Genre)) +geom_boxplot()+ggtitle("Danceability vs Genre")+theme(legend.position = "none") 
+ggplot(data=music,aes(x=Acousticness,y=Overall_Genre,color=Overall_Genre)) +geom_boxplot()+ ggtitle("Acousticness vs Genre")+theme(legend.position = "none")
+```
+
+
+```{r, echo=FALSE ,fig.height=2, fig.width=3, align='center'}
+par(mfrow=c(1,2))
+ggplot(data=music,aes(x=Valence,y=Overall_Genre,color=Overall_Genre)) +geom_boxplot()+ ggtitle("Valence vs Genre")+theme(legend.position = "none") 
+ggplot(data=music,aes(x=Speechness,y=Overall_Genre,color=Overall_Genre)) +geom_boxplot()+ggtitle("Speechness vs Genre")+theme(legend.position = "none") 
+
+```
+
+The above box-plots illustrates the various features across the genres. The findings from the EDA also has justification in real life. Key Findings:
+
+1. Hiphop and Electronic music have the highest median Danceability values when compared to the other variables. This is also supported as Electronic (such as EDM, House) and Hiphop music are known for dancing. 
+2. As Folk music uses real instruments and very less electronic sounds, it can be justified that Folk has the highest median acousticness value when compared to other genres. The genre with the second highest median acousticness value is Jazz. 
+3. It can be noticed that Jazz has the highest median valence value, then comes Hip-hop. Valence measures the positivity in the music. Interestingly, Ambient Music has the lowest median valence value, which is in fact surprising as ambient music is known to calm the mind and spread happiness.
+4. As Hiphop is a combination of DJing, Rapping, Breakdancing, and Graffiti writing, it justifies the above boxplot as it has the highest median Speechness value when compared to the other genres. 
+
+## Model 
+
+The dataset was split into a 80:20 stratified training testing set and was used on two models. One major assumption made while conducting the study is that each song belongs to only one genre. Transformations and interactions were tested but did not improve the model's performance. Hence, I focused on only main effects as predictors. 
+
+### Multinomial Logistic Regression (MLR)
+
+The final model for multinomial logistic regression is
+
+$\log({\pi_{i,j}}/{\pi_{i,1}})$ = $\beta_{0,j}$ + $\beta_{1,j}$ * Danceability + $\beta_{2,j}$ * Energy + $\beta_{3,j}$ * Loudness + 
+$\beta_{4,j}$ * Acousticness + $\beta_{5,j}$ * Instrumentalness + $\beta_{6,j}$ * Valence + $\beta_{7,j}$ * Duration + $\beta_{8,j}$ * Tempo + $\beta_{9,j}$ * Mode + $\beta_{10,j}$ * Speechness + $\beta_{11,j}$ * Key + $\beta_{12,j}$ * Time_Signature 
+
+
+The summary of the model is present in the Appendix. To identify significant variables, the 95% confident intervals was calculated. For majority of the genres, Tempo, time_signature, and Key contain 0 in the interval, indicating that it is not significant. For all genres, Danceability is the only feature that does not contain 0 in its 95% confident interval, indicating that it is a significant variable. The ROC curves (on the training dataset) are present in the Appendix .The Multi ROC curve has an AUC value of 0.8234.
+
+Below is the Classification Report of the model on the testing dataset. 
+
+![MLR Classification Report](/Users/pranavmanjunath/Desktop/Duke/702/Final Project_Git/final-project-PranavM98/Presentation/MLR1.png)
+
+
+
+The model has an overall accuracy of 48.53%. 
+Interestingly, except for the genre Rock, the other genres have a higher specificity value than sensitivity value. Similarly, the Negative Predicted Value for all the genres are above 80% and greater than its respective Positive Predicted Value, indicating that the model is able to accurately predict when a song does not belong to a specific genre. It can also be seen that Hip-hop has the highest balanced accuracy of 76.76%. While observing the binned residual plots, few plots (shown in the appendix) while having 95% of its points inside the confidence interval, showed significant patterns such as a parabolic curve. Upon adding transformations and interactions, there were no difference, inferring that this data might not follow the assumptions of the parametric model. 
+
+
+
+### Gradient Boosting Methods (GBM)
+
+GBM is a non parametric, ensemble method that is used for classification and regression analysis. An ensemble model is a strong learner created by combining multiple weak learners. One of the benefits of implementing GBM is that the model also computes the relative importance/influence scores for each predictor after constructing the boosting trees. Relative influence indicates how valuable each feature is in the construction of the boosted decision trees within the model. A variable with a high importance value indicates that the attribute is used to make key decisions. This value is calculated for a single tree and then averaged across all of the decision trees within the model. 
+
+
+
+Using the same formula present in MLR, I built a GBM model with the following additional hyperparameters: n_trees = 1000, shrinkage = 0.15, interaction.depth = 2. Below is the Classification Report of the GBM model on the testing dataset. 
+
+![GBM Classification Report](/Users/pranavmanjunath/Desktop/Duke/702/Final Project_Git/final-project-PranavM98/Presentation/GBM.png){height=30%}
+
+The GBM model has an overall accuracy of 54.02%, performing better than the MLR model. Similar to the MLR model, expect for the genre Rock, the other genres have a higher Specificity value than Sensitivity value. Each genre has a greater balanced accuracy in the GBM model when compared to the MLR model- Hip-hop having the highest of 81.65%. The plot below shows the Relative Variable Importance constructed using the GBM model.
+
+```{r, echo=FALSE, fig.height=2, fig.width=3, align='center', fig.cap="GBM Relative Variable Importance Table"}
+#par(mfrow=c(2,1))
+#knitr::include_graphics("/Users/pranavmanjunath/Desktop/Duke/702/Final Project_Git/final-project-PranavM98/Presentation/Variable_Importance.png") #knitr::include_graphics("/Users/pranavmanjunath/Desktop/Duke/702/Final Project_Git/final-project-PranavM98/Presentation/V_Importance.png")
+
+
+par(mfrow=c(1,2))
+p1 <- ggdraw() + draw_image("/Users/pranavmanjunath/Desktop/Duke/702/Final Project_Git/final-project-PranavM98/Presentation/Variable_Importance.png", scale = 1.0)
+p2 <- ggdraw() + draw_image("/Users/pranavmanjunath/Desktop/Duke/702/Final Project_Git/final-project-PranavM98/Presentation/V_Importance.png", scale = 1.0)
+
+p1
+p2
+```
+
+
+
+As shown in the figure above, Danceability, Acousticness, and Speechness have the top three relative importance value when compared to the other variables, indicating that these are important attribute is used to make key decisions in predicting the Genre of a song. On the contrast, features such as Time Signature, Key and Mode have the lowest relative importance, indicating that these variables do not play a major role in predicting the genre of a song. These findings are also consistent with the MLR model as well. 
+
+The variables initially had high multicollinearity. After scaling up and centering the continuous predictors, majority of the variables did not have any problems with multicollinearity (VIF Score < 10). 
+
+
+### Discussions
+
+1. From this study, the most important variables that impact the genre of the song are Danceability, Acousticness, and Speechness. Variables such as the Time Signature, Key and Mode do not play a significant role in predicting the genre of a song.
+
+2. When comparing both GBM and MLR, the non parametric model GBM performs better in predicting the genre of a song. However, the overall accuracy of GBM is only 54.02%, still requires more fine tuning to improve the performance. From these results, it cannot be said that GBM model can accurately predict the genre of a song.
+
+## Application
+
+To apply this project in the real world, I built a R Shiny App that takens in the inputs of the musician's song features and returns the predicted genre as well as the top 10 songs similar to the one inputted. The Genre prediction is done by the GBM model and song similarities are calculated using Cosine Similarity. There is also a link to access Spotify from the application. Application Screenshot attached in the appendix.
+
+
+
+## Conclusion
+
+This study focuses on the application of MLR and GBM in predicting the musical genre song based on the audio features extracted by the Spotify Algorithm. The GBM Model produced a better overall accuracy of 54.02%. To understand the influence of various features on the response variable, I looked at the confidence intervals for the MLR model and also the variable importance from the GBM model. The study concluded that Danceability, Acousticness, and Speechness have the top 3 highest relative influence values when compared with the other variables. 
+There are a few limitations with this study. 1) Classifying the songs into one parent genre can be difficult as songs can belong to multiple genres. 2) There are frequent overlaps between various genres. 3) A genre can consist of multiple genres. For example, the genre Indie Rock is a combination of the genres Indie and Rock. For future scope, application of Deep Learning algorithms might help in accurately predict the genre of a song. Another approach that removes the assumption that one song belongs to only one genre is Fuzzy Logic.  As songs can also belong to one or more genres, Fuzzy Logic aims to identify the percentage fit that a song belongs to each genre. 
+
+## Appendix
+
+### Spotify Audio Features
+```{r echo=FALSE, fig.width=8, fig.height=6}
+
+properties<-data.frame("Variable"=c("Name","Danceability"  ,   "Energy"    ,       "Key"       ,       "Loudness",
+                             "Mode"     ,        "Speechness"      , "Acousticness"  ,   "Instrumentalness" ,
+                             "Liveness"    ,     "Valence"      ,    "Tempo"       ,  "Duration_ms"   ,   "Time_Signature" ,  "Genre"),
+                "Description"=c("Song Name",
+                                "Danceability describes how suitable a track is for dancing based on a combination of musical elements including tempo, rhythm stability, beat strength, and overall regularity. ",
+                                "Energy is a measure from 0.0 to 1.0 and represents a perceptual measure of intensity and activity.",
+                                "The estimated overall key of the track.",
+                                "The overall loudness of a track in decibels (dB).",
+                                "Mode indicates the modality (major or minor) of a track.",
+                                "Speechiness detects the presence of spoken words in a track.",
+                                "A confidence measure from 0.0 to 1.0 of whether the track is acoustic.",
+                                "Predicts whether a track contains no vocals.",
+                                "Detects the presence of an audience in the recording.",
+                                "A measure from 0.0 to 1.0 describing the musical positiveness conveyed by a track.",
+                                "The overall estimated tempo of a track in beats per minute (BPM).",
+                                "The duration of the track in milliseconds.",
+                                "An estimated overall time signature of a track.",
+                                "Genre of the Song"))
+
+
+
+pander(properties)
+```
+
+
+### Sub Genres that belong to the main Genre
+
+Ambient - "deepchill-out","organicambient"  "futureambient"  "darkambient"  "ambientworship"  "spaceambient"
+
+Electronic -"tropicalhouse"        "darktechno"           "deepdeephouse"        "nuelectro"            "minimaltechno" "electrolatino"        "experimentalhouse"    "microhouse"           "electronicore"        "canadianelectropop" "deepdubtechno"        "greekhouse"           "turkishelectronic"    "brazilianelectronica" "bouncyhouse"  "tijuanaelectronic"    "chicagohouse"         "hiphouse"             "deepgroovehouse"      "darkprogressivehouse" "hardminimaltechno"    "czechelectronic"      "electronica"          "russianelectronic"    "electronic"       "witchhouse"           "germantechno"         "nordichouse"   
+
+Folk - "portuguesefolk"         "runefolk"               "dronefolk"              "romanianfolk" "spanishfolk"            "psychedelicfolk"        "nlfolk"                 "frenchfolk"      "turkishfolk"            "balticfolk"             "traditionalbritishfolk" "irishfolk"  "bretonfolk"             "traditionalenglishfolk" "norwegianfolk"          "flemishfolk"   "corsicanfolk"           "polishfolk"             "catalanfolk"            "galicianfolk"       "czechfolk"              "americanfolkrevival"    "okinawanfolk"           "traditionalfolk"   "finnishfolk"    
+
+
+
+Hip-Hop - "ghanaianhiphop"              "albanianhiphop"              "arabichiphop"      "undergroundlatinhiphop"      "italianundergroundhiphop"    "finnishhiphop"  "hiphop"                      "norwegianhiphop"             "frenchhiphop"  "chiphop"                     "experimentalhiphop"          "austrianhiphop"  "venezuelanhiphop"            "estonianhiphop"              "outerhiphop"          "indonesianhiphop"            "nativeamericanhiphop"        "scottishhiphop"      "peruvianhiphop"              "lgbtq+hiphop"                "turkishhiphop"         "australianundergroundhiphop" "italianhiphop"               "portlandhiphop"    "czechhiphop"                 "hungarianhiphop"   "balkantrap"     "dmvrap"         "trapfrancais"   "rapmetalcore"   "emorap"         "darktrap"       "rapdominicano"  "countryrap"     "poprap"         "romaniantrap"   "rapmetal"    "j-rap"          "undergroundrap"
+
+
+
+Rock - "slovakrock"                "ostrock"                   "mexicanrock-and-roll"      "canadianrock"              "italianpost-rock"          "colombianrock"             "geekrock"                  "basquerock"                "rockkapak"                 "swedishrockabilly"         "wrock"                     "icelandicrock"             "ecuadorianalternativerock" "deepsoftrock"              "uknoiserock"               "portugueserock"            "gothicrock"                "rocktico"                  "panamanianrock"            "czechrock"                 "germanpost-rock"           "garagerock"                "psychedelicrock"           "rocknacional"              "rock"                      "post-rocklatinoamericano"  "germanhardrock"            "yugoslavrock"            "atmosphericpost-rock"      "australianrock"            "classicgaragerock"         "medievalrock"              "alternativerootsrock"      "deepchristianrock"         "rockcatala"               "swedishhardrock"           "southernrock"              "kindierock"     "russianpunk"       "indonesianpoppunk" "noisepunk"         "deeppoppunk"       "hardcorepunk"      "chicagopunk"       "ukpost-punk"       "deeppower-poppunk" "darkpost-punk"     "cyberpunk"         "steampunk"         "ukdiypunk"         "mexicanpoppunk"    "norwegianpunk"     "frenchpunk"        "hungarianpunk"     "germanpunk"        "crustpunk"         "swedishpoppunk"    "protopunk"        "acousticpunk"      "minneapolispunk"   "christianpunk"     "polishpunk"       "slovakindie"           "birminghamindie"       "liverpoolindie"        "torontoindie"          "elpasoindie"           "belfastindie"          "hongkongindie"         "ecuadorianindie"   "alaskaindie"           "essexindie"            "portugueseindie"       "minneapolisindie"      "detroitindie"          "peruvianindie"         "buffalonyindie"        "monterreyindie"       "dominicanindie"        "indietico"             "albuquerqueindie"      "israeliindie"          "tassieindie"           "northeastenglandindie" "columbusohioindie"     "sanantonioindie"        "colombianindie"        "swissindie"            "brightonindie"         "icelandicindie"        "okindie"               "argentineindie"        "coventryindie"         "leedsindie"           "czechindie"            "malmoindie"            "chicagoindie"          "indienapoletano"       "norwegianindie"        "vegasindie"            "rvaindie"              "indianindie"          "milanindie"            "dallasindie"           "michiganindie"         "cornwallindie"         "seattleindie"          "phoenixindie"          "idahoindie"            "dunedinindie"         "dublinindie"           "halifaxindie"          "westernmassindie"      "victoriabcindie"       "romanianindie"         "guatemalanindie"       "melbourneindie"        "sydneyindie"        "stlindie"              "aucklandindie"         "welshindie"       
+
+
+Jazz - "deeplatinjazz"    "jazzfusion"       "russianjazz"      "vocaljazz"        "neosoul-jazz"     "finnishjazz"      "britishjazz"      "estonianjazz"     "smoothjazz"       "germanjazz"  "jazzelectricbass" "deepsmoothjazz"   "spiritualjazz"    "contemporaryjazz" "bossanovajazz"    "southafricanjazz"
+ 
+ 
+ 
+ 
+Metal - "celticmetal"                  "groovemetal"                  "dronemetal"                   "belgianmetal"                 "japanesedeathmetal"           "gothicmetal"   "norwegianmetal"               "bostonmetal"                  "metalguitar"                  "neo-tradmetal"                "melodicdeathmetal"            "melodicmetalcore"        "sludgemetal"                  "technicalblackmetal"          "austrianmetal"                "metallichardcore"             "latinmetal"                   "norwegiandeathmetal"       "finnishblackmetal"            "polishblackmetal"             "chaoticblackmetal"            "turkishmetal"                 "gothicsymphonicmetal"         "welshmetal"                "vikingmetal"                  "greekblackmetal"              "koreanmetal"                  "peruvianmetal"                "slavicmetal"                  "atmosphericpost-metal"       "swedishdeathmetal"            "instrumentalprogressivemetal" "post-metal"                   "darkblackmetal"               "post-blackmetal"              "symphonicpowermetal"      "depressiveblackmetal"         "thrashmetal" 
+
+
+
+Pop - "canadianpop"         "belgianpop"          "lapop"               "dreampop"            "undergroundpowerpop" "mathpop"             "mandepop"            "deepbrazilianpop"    "thaipop"           "v-pop"               "vaporpop"            "channelpop"          "ukpop"               "christianpop"        "icelandicpop"        "gauzepop"            "swedishsynthpop"     "grungepop"      "skyroom"             "cumbiapop"           "portuguesepop"       "etherpop"            "indonesianpop"       "bedroompop"          "germanpop"           "danishpop"           "polynesianpop"      "noisepop"            "ukalternativepop"    "azeripop"            "classicdanishpop"    "classicswedishpop"   "greenlandicpop"      "popping"             "newwavepop"          "europop"   "hippop"              "polishpop"           "koreanpop"           "regionalmexicanpop"  "czechpop"            "australianpop"      
+
+
+
+![ROC Curves MLR](/Users/pranavmanjunath/Desktop/Duke/702/Final Project_Git/final-project-PranavM98/Presentation/roc1.png){height=150%}
+
+![ROC Curves MLRs](/Users/pranavmanjunath/Desktop/Duke/702/Final Project_Git/final-project-PranavM98/Presentation/roc2.png){height=150%}
+
+
+![Summary of MLR Model](/Users/pranavmanjunath/Desktop/Duke/702/Final Project_Git/final-project-PranavM98/Presentation/MLR.png){height=150%}
+
+![Few MLR Binned Residual Plots](/Users/pranavmanjunath/Desktop/Duke/702/Final Project_Git/final-project-PranavM98/Presentation/Binned_Plots.png)
+
+
+![Application Screenshot](/Users/pranavmanjunath/Desktop/Duke/702/Final Project_Git/final-project-PranavM98/Presentation/App1.png)

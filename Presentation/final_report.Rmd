@@ -1,0 +1,78 @@
+---
+title: "Music Genre Prediction"
+author: "Pranav Manjunath"
+date: "11/12/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(pander)
+```
+
+## Summary
+
+
+## Introduction
+
+
+A music genre is a category that identifies music as belonging to a shared tradition or set of conventions. As genres lacks clear boundaries, it becomes difficult to accurately classify songs into a particular musical genre.  This classification however becomes extremely crucial for music platforms and musicians. Due to the outburst of digital music platforms, various types of music are becoming more familiar to users. One such way that platforms introduce new music to users is by their recommendation systems, also known as the Music Recommender System (MRS). MRS have been adopted by industry to assist listeners in navigating the catalogs of available music recordings and to serve them with suggestions of items that may fit the respective user's preferences [1]. To understand the user’s preference, the MRS identifies the musical genres that the user has previously listened to. Another use case of music genre classification is for musicians. After composing a new song, musicians would want to understand the genre of music that is most closely associated with the song. 
+Spotify, a Swedish-based audio streaming and media services provider, created an API that extracts multiple audio features of a song, calculated by their own algorithm. Upon inputting a song’s ID, the API would output the audio feature values for given song. A detailed description of the various audio features is mentioned in Table 1.
+
+
+```{r cars}
+summary(cars)
+```
+
+## Data
+
+The original dataset was taken from Kaggle and consisted of 122382 songs. There are 21 columns including the  URI, Type, ID, Ref_track, URL_features along with the extracted audio features present in Table 1. The dataset consists of 2800 unique genres. 
+
+The below table shows the various columns present in the data. 
+
+```{r echo=FALSE}
+
+properties<-data.frame("Variable"=c("Name","Danceability"  ,   "Energy"    ,       "Key"       ,       "Loudness",
+                             "Mode"     ,        "Speechness"      , "Acousticness"  ,   "Instrumentalness" ,
+                             "Liveness"    ,     "Valence"      ,    "Tempo"       ,  "Duration_ms"   ,   "Time_Signature" ,  "Genre"),
+                "Description"=c("Song Name",
+                                "Danceability describes how suitable a track is for dancing based on a combination of musical elements including tempo, rhythm stability, beat strength, and overall regularity. ",
+                                "Energy is a measure from 0.0 to 1.0 and represents a perceptual measure of intensity and activity.",
+                                "The estimated overall key of the track.",
+                                "The overall loudness of a track in decibels (dB).",
+                                "Mode indicates the modality (major or minor) of a track.",
+                                "Speechiness detects the presence of spoken words in a track.",
+                                "A confidence measure from 0.0 to 1.0 of whether the track is acoustic.",
+                                "Predicts whether a track contains no vocals.",
+                                "Detects the presence of an audience in the recording.",
+                                "A measure from 0.0 to 1.0 describing the musical positiveness conveyed by a track.",
+                                "The overall estimated tempo of a track in beats per minute (BPM).",
+                                "The duration of the track in milliseconds.",
+                                "An estimated overall time signature of a track.",
+                                "Genre of the Song"))
+
+
+
+pander(properties)
+```
+
+ii.	Data Preprocessing
+
+a.	Combining the Genres. The first step of data preprocessing was to combine the genres into its parent genre. A new variable (Overall_Genre) was created to store the parent genre and used as the response variable in this study. Throughout this paper the term Overall_Genre will be represented by genre. 
+
+b.	Filtering. Next,  genres with less than 2000 songs were removed from the dataset. After filtering the data, there were 14 genres present.
+
+c.	Data Types. The variable “Overall_Genre” (Response Variable) was converted to a factor variable. “Key” and “Time Signature” was converted to discrete variables while “Mode” was converted into a binary value. 
+
+
+
+## Model 
+
+1. Multinomial Logistic Regression
+
+
+2. Gradient Boosting Methods (GBM)
+
+GBM is a non Parametric Model.
+Gradient Boosting trains many models in a gradual, additive and sequential manner. Gradient boosting identify the shortcomings of weak learners (eg. decision trees). by using gradients in the loss function (y=ax+b+e, e needs a special mention as it is the error term). An important feature in the gbm modelling is the Variable Importance. Applying the summary function to a gbm output produces both a Variable Importance Table and a Plot of the model. This table below ranks the individual variables based on their relative influence, which is a measure indicating the relative importance of each variable in training the model. In the Titanic Model, we can see that Cabin and Sex are by far the most important variables in our gbm model.
+
